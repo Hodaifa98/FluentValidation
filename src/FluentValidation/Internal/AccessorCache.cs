@@ -21,11 +21,25 @@ namespace FluentValidation.Internal {
 		/// <param name="bypassCache"></param>
 		/// <returns>Accessor func</returns>
 		public static Func<T, TProperty> GetCachedAccessor<TProperty>(MemberInfo member, Expression<Func<T, TProperty>> expression, bool bypassCache = false) {
+			//TODO: Merge the 2 overloads for FV10.
+			return GetCachedAccessor(member, expression, bypassCache, null);
+		}
+
+		/// <summary>
+		/// Gets an accessor func based on an expression
+		/// </summary>
+		/// <typeparam name="TProperty"></typeparam>
+		/// <param name="member">The member represented by the expression</param>
+		/// <param name="expression"></param>
+		/// <param name="bypassCache"></param>
+		/// <param name="cachePrefix">Cache prefix</param>
+		/// <returns>Accessor func</returns>
+		public static Func<T, TProperty> GetCachedAccessor<TProperty>(MemberInfo member, Expression<Func<T, TProperty>> expression, bool bypassCache, string cachePrefix) {
 			if (member == null || bypassCache || ValidatorOptions.Global.DisableAccessorCache) {
 				return expression.Compile();
 			}
 
-			var key = new Key(member, expression);
+			var key = new Key(member, expression, cachePrefix);
 			return (Func<T,TProperty>)_cache.GetOrAdd(key, k => expression.Compile());
 		}
 
@@ -37,9 +51,9 @@ namespace FluentValidation.Internal {
 			private readonly MemberInfo _memberInfo;
 			private readonly string _expressionDebugView;
 
-			public Key(MemberInfo member, Expression expression) {
+			public Key(MemberInfo member, Expression expression, string cachePrefix) {
 				_memberInfo = member;
-				_expressionDebugView = expression.ToString();
+				_expressionDebugView = cachePrefix != null ? cachePrefix + expression.ToString() : expression.ToString();
 			}
 
 			protected bool Equals(Key other) {
